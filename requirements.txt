@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+selenium
+tensorflow-cpu
+opencv-python-headless
+numpy
+pydantic
