@@ -13,8 +13,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 import requests
 from bs4 import BeautifulSoup
 import re
+
 import json
 from flask import Flask, request, jsonify
+import requests
+import urllib3
+
+# 1. 關閉警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# 2. (進階) 嘗試修改 OpenSSL 設定，允許舊的加密法
+# 這在某些受限的雲端環境可能無效，但值得一試
+try:
+    requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':HIGH:!DH:!aNULL'
+    try:
+        requests.packages.urllib3.contrib.pyopenssl.util.ssl_.DEFAULT_CIPHERS += ':HIGH:!DH:!aNULL'
+    except AttributeError:
+        pass
+except AttributeError:
+    pass
 
 app = Flask(__name__)
 
@@ -205,7 +222,7 @@ def scrape_all_courses(driver):
         payload = {"CRSNO": course_no, "SCO_TYP_COD": "--"}
         
         try:
-            response = session.post(query_url, headers=headers, data=payload, timeout=10)
+            response = session.post(query_url, headers=headers, data=payload, timeout=10, verify=False)
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -268,7 +285,7 @@ def scrape_historical_data(driver):
             payload = f"SYEAR={year}&SEM={sem}"
             
             try:
-                response = requests.post(url, headers=headers, cookies=session_cookies, data=payload, timeout=10)
+                response = requests.post(url, headers=headers, cookies=session_cookies, data=payload, timeout=10, verify=False)
                 response.encoding = response.apparent_encoding 
                 
                 if "無此學期成績" in response.text:
