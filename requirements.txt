@@ -1,7 +1,9 @@
+beautifulsoup4
 fastapi
 uvicorn
 selenium
+requests
+numpy
 tensorflow-cpu
 opencv-python-headless
-numpy
 pydantic
