@@ -1,36 +1,31 @@
-# 使用帶有 Python 的輕量級 Linux 映像檔
 FROM python:3.9-slim
 
-# 安裝必要的 Linux 套件與 Chrome 瀏覽器
+# 安裝系統依賴，修正 Debian Trixie 找不到舊套件的問題
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     unzip \
     curl \
-    libglib2.0-0 \
-    libnss3 \
-    libgconf-2-4 \
-    libfontconfig1 \
-    libgl1-mesa-glx \
+    # Chromium 瀏覽器與驅動
     chromium \
     chromium-driver \
+    # 必要的系統函式庫 (移除過時的 libgconf-2-4 與 libgl1-mesa-glx)
+    libglib2.0-0 \
+    libnss3 \
+    libfontconfig1 \
+    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 設定環境變數，讓 Selenium 知道去哪裡找 Chrome
+# 設定環境變數，讓 Selenium 知道 Chromium 的位置
 ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMEDRIVER_PATH=/usr/bin/chromium-driver
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# 設定工作目錄
 WORKDIR /app
 
-# 複製專案檔案
-COPY . .
-
-# 安裝 Python 套件
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 暴露 FastAPI 預設埠
-EXPOSE 8000
+COPY . .
 
 # 啟動命令
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
