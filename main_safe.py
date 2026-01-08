@@ -2,7 +2,7 @@ import os
 import cv2
 import base64
 import numpy as np
-# import tensorflow as tf
+import tensorflow as tf
 import csv
 import re
 from fastapi import FastAPI, HTTPException
@@ -14,11 +14,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-import uuid
-import tensorflow as tf
-# from tflite_runtime.interpreter import Interpreter
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 # =====================
 # 基本設定
@@ -30,10 +25,11 @@ TFLITE_NAME = "model.tflite"
 
 app = FastAPI()
 
+# API 請求格式
 class CrawlRequest(BaseModel):
     account: str
     password: str
-    task: str  # "score", "grades", "both", "test"
+    task: str  # "score" (分數), "grades" (成績), "both" (都要)
 
 # =====================
 # 模型與預處理函數 (保持原邏輯)
@@ -80,7 +76,7 @@ def get_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     
-    # 移除手動指定 Service 路徑,讓 Selenium Manager 自動偵測
+    # 移除手動指定 Service 路徑，讓 Selenium Manager 自動偵測
     # 僅保留 binary_location 告訴 Selenium 瀏覽器在哪
     if os.path.exists("/usr/bin/chromium"):
         options.binary_location = "/usr/bin/chromium"
@@ -88,17 +84,7 @@ def get_driver():
         options.binary_location = "/usr/bin/google-chrome"
         
     return webdriver.Chrome(options=options)
-    # """設定 Chrome Driver for GCP VM"""
-    # options = Options()
-    # options.add_argument("--headless")        # 必備：無介面模式
-    # options.add_argument("--disable-gpu")
-    # options.add_argument("--no-sandbox")      # 必備：權限修正
-    # options.add_argument("--disable-dev-shm-usage") # 必備：防止記憶體溢出
-    
-    # # 自動下載並啟動對應版本的 Chromedriver
-    # service = Service(ChromeDriverManager().install())
-    # driver = webdriver.Chrome(service=service, options=options)
-    # return driver
+
 # =====================
 # 功能函數 (改為 return 數據)
 # =====================
@@ -116,10 +102,7 @@ def login_process(driver, interpreter, input_details, output_details, acc, pwd):
         driver.find_element(By.NAME, "PASSWD").clear()
         driver.find_element(By.NAME, "PASSWD").send_keys(pwd)
         driver.find_element(By.NAME, "ValidCode").send_keys(code)
-        
-        # 使用 JS 點擊登入按鈕
-        login_btn = driver.find_element(By.CSS_SELECTOR, 'input.login_btn_01')
-        driver.execute_script("arguments[0].click();", login_btn)
+        driver.find_element(By.CSS_SELECTOR, 'input.login_btn_01').click()
         
         try:
             WebDriverWait(driver, 2).until(EC.alert_is_present())
@@ -145,13 +128,8 @@ def scrape_score(driver):
         driver.switch_to.frame("mtn_down1")
         r = driver.find_elements(By.NAME, "CRSNO")[i]
         name = r.find_element(By.XPATH, "./parent::font/parent::td/following-sibling::td[2]").text.strip()
-        
-        # 使用 JS 點擊 radio button
-        driver.execute_script("arguments[0].click();", r)
-        
-        # 使用 JS 點擊查詢按鈕
-        submit_btn = driver.find_element(By.NAME, "B1")
-        driver.execute_script("arguments[0].click();", submit_btn)
+        r.click()
+        driver.find_element(By.NAME, "B1").click()
         
         driver.switch_to.default_content()
         driver.switch_to.frame("mtn_down2")
@@ -181,10 +159,7 @@ def scrape_grades(driver):
             if s_idx >= len(sem_sel.options): break
             sem = sem_sel.options[s_idx].text.strip()
             sem_sel.select_by_index(s_idx)
-            
-            # 使用 JS 點擊查詢按鈕
-            submit_btn = driver.find_element(By.NAME, "B1")
-            driver.execute_script("arguments[0].click();", submit_btn)
+            driver.find_element(By.NAME, "B1").click()
             
             driver.switch_to.default_content()
             try:
@@ -206,9 +181,9 @@ def scrape_grades(driver):
 # =====================
 @app.post("/api/scrape")
 async def start_crawl(req: CrawlRequest):
+    # 1. 檢查帳密是否為空
     if req.task == "test":
         return {"status": "success", "message": "ok"}
-    # 1. 檢查帳密是否為空
     if not req.account or not req.password:
         raise HTTPException(status_code=422, detail="帳號與密碼為必填欄位")
 
@@ -240,4 +215,4 @@ async def start_crawl(req: CrawlRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
