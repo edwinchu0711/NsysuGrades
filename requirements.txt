@@ -1,11 +1,8 @@
-beautifulsoup4
 fastapi
 uvicorn
-selenium
-requests
-numpy
-tensorflow-cpu
-opencv-python-headless
 pydantic
-flask
-urllib3
+selenium
+webdriver-manager
+opencv-python-headless
+numpy
+tflite-runtime==2.14.0
