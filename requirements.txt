@@ -4,5 +4,6 @@ pydantic
 selenium
 webdriver-manager
 opencv-python-headless
-numpy
+numpy<2.0.0
 tflite-runtime==2.14.0
+
