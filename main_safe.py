@@ -15,8 +15,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import uuid
-# import tensorflow as tf
-from tflite_runtime.interpreter import Interpreter
+import tensorflow as tf
+# from tflite_runtime.interpreter import Interpreter
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -48,7 +48,7 @@ def load_tflite_model():
     with open(model_path, "rb") as f:
         model_bytes = f.read()
 
-    interpreter = Interpreter(model_content=model_bytes)
+    interpreter = tf.lite.Interpreter(model_content=model_bytes)
     interpreter.allocate_tensors()
     
     input_details = interpreter.get_input_details()
